@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════════
+# NEURO-LITE v1.0 — Master Installer
+# Idempotent · Fail-fast · Colored logging
+# ═══════════════════════════════════════════════════════════
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export NEURO_ROOT="${SCRIPT_DIR}"
+
+# ── Colors ────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+log_info()  { echo -e "${BLUE}[INFO]${NC}  $(date '+%H:%M:%S') $*"; }
+log_ok()    { echo -e "${GREEN}[  OK]${NC}  $(date '+%H:%M:%S') $*"; }
+log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $(date '+%H:%M:%S') $*"; }
+log_err()   { echo -e "${RED}[ ERR]${NC}  $(date '+%H:%M:%S') $*"; }
+log_step()  { echo -e "\n${CYAN}${BOLD}══════ $* ══════${NC}"; }
+
+export -f log_info log_ok log_warn log_err log_step
+export RED GREEN YELLOW BLUE CYAN BOLD NC
+
+# ── Pre-flight checks ────────────────────────────────────
+if [[ $EUID -ne 0 ]]; then
+    log_err "This installer must be run as root (use sudo)."
+    exit 1
+fi
+
+REAL_USER="${SUDO_USER:-$(whoami)}"
+export REAL_USER
+
+if [[ ! -f "${NEURO_ROOT}/config.env" ]]; then
+    log_err "config.env not found at ${NEURO_ROOT}/config.env"
+    exit 1
+fi
+
+source "${NEURO_ROOT}/config.env"
+
+TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+TOTAL_RAM_MB=$((TOTAL_RAM_KB / 1024))
+log_info "Detected RAM: ${TOTAL_RAM_MB} MB"
+
+if [[ ${TOTAL_RAM_MB} -lt 3500 ]]; then
+    log_warn "System has less than 3.5GB RAM. Performance may be degraded."
+fi
+
+# ── Create directories ───────────────────────────────────
+mkdir -p "${NEURO_ROOT}/models"
+mkdir -p "${NEURO_ROOT}/data"
+mkdir -p "${NEURO_ROOT}/logs"
+chown -R "${REAL_USER}:${REAL_USER}" "${NEURO_ROOT}/models" "${NEURO_ROOT}/data" "${NEURO_ROOT}/logs"
+
+# ── Execute modules sequentially ─────────────────────────
+MODULES_DIR="${NEURO_ROOT}/modules"
+MODULES=(
+    "01_os_tuning.sh"
+    "02_install_deps.sh"
+    "03_download_model.sh"
+    "04_setup_service.sh"
+)
+
+FAILED=0
+for module in "${MODULES[@]}"; do
+    MODULE_PATH="${MODULES_DIR}/${module}"
+    if [[ ! -f "${MODULE_PATH}" ]]; then
+        log_err "Module not found: ${MODULE_PATH}"
+        FAILED=1
+        break
+    fi
+
+    log_step "Running ${module}"
+    chmod +x "${MODULE_PATH}"
+
+    if bash "${MODULE_PATH}"; then
+        log_ok "${module} completed successfully."
+    else
+        log_err "${module} FAILED with exit code $?."
+        FAILED=1
+        break
+    fi
+done
+
+if [[ ${FAILED} -eq 1 ]]; then
+    log_err "Installation aborted due to failure."
+    exit 1
+fi
+
+echo ""
+echo -e "${GREEN}${BOLD}═══════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}${BOLD}  NEURO-LITE v1.0 installed successfully!${NC}"
+echo -e "${GREEN}${BOLD}═══════════════════════════════════════════════════════${NC}"
+echo -e "  Chat UI:   ${CYAN}http://localhost:${NEURO_LITE_PORT}/${NC}"
+echo -e "  Admin UI:  ${CYAN}http://localhost:${NEURO_LITE_PORT}/admin${NC}"
+echo -e "  Service:   ${CYAN}sudo systemctl status neurolite${NC}"
+echo ""

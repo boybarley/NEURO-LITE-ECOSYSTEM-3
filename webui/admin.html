@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Neuro-Lite Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0e17;--s1:#111827;--s2:#1f2937;--s3:#374151;--border:#4b5563;--text:#e5e7eb;--muted:#9ca3af;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--radius:8px}
+html,body{height:100%;font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+a{color:var(--accent);text-decoration:none}
+/* Layout */
+.layout{display:flex;height:100vh}
+.sidebar{width:240px;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar .brand{padding:20px;font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sidebar .brand .icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:800}
+.sidebar nav{padding:12px}
+.sidebar nav .nav-group{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:12px 12px 6px;font-weight:600}
+.sidebar nav button{width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 12px;border-radius:var(--radius);cursor:pointer;font-size:13.5px;display:flex;align-items:center;gap:10px;transition:background .15s}
+.sidebar nav button:hover{background:var(--s2)}
+.sidebar nav button.active{background:var(--accent);color:#fff}
+.sidebar nav button .ico{width:20px;text-align:center;font-size:16px}
+.main{flex:1;overflow-y:auto;padding:24px 32px}
+.main h2{font-size:22px;font-weight:700;margin-bottom:20px}
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.card .value{font-size:28px;font-weight:700;margin:6px 0}
+.card .sub{font-size:12px;color:var(--muted)}
+/* Progress bar */
+.prog{height:8px;background:var(--s3);border-radius:4px;overflow:hidden;margin-top:8px}
+.prog .fill{height:100%;border-radius:4px;transition:width .5s ease}
+.prog .fill.blue{background:var(--accent)}
+.prog .fill.green{background:var(--green)}
+.prog .fill.orange{background:var(--orange)}
+.prog .fill.red{background:var(--red)}
+/* Table */
+.tbl{width:100%;border-collapse:collapse;background:var(--s1);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.tbl th,.tbl td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:13px}
+.tbl th{background:var(--s2);font-weight:600;font-size:12px;text-transform:uppercase;color:var(--muted);letter-spacing:.3px}
+.tbl tr:hover td{background:var(--s2)}
+.tbl .actions{display:flex;gap:6px}
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-success{background:var(--green);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+/* Forms */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13.5px;font-family:inherit;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:80px}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-bg.show{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto}
+.modal h3{font-size:18px;margin-bottom:16px}
+/* Toolbar */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.toolbar input[type="text"]{flex:1;min-width:200px}
+/* Tab sections */
+.tab-content{display:none}
+.tab-content.active{display:block}
+/* Toast */
+.toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:var(--radius);font-size:13px;color:#fff;animation:slideIn .3s ease;max-width:380px;word-wrap:break-word}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.info{background:var(--accent)}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+/* Login */
+.login-wrap{display:flex;align-items:center;justify-content:center;height:100vh;background:var(--bg)}
+.login-box{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:40px;width:380px;text-align:center}
+.login-box h2{margin-bottom:6px}
+.login-box p{color:var(--muted);font-size:13px;margin-bottom:24px}
+.login-box .form-group{text-align:left}
+/* Responsive */
+@media(max-width:768px){.sidebar{width:56px}.sidebar .brand span,.sidebar nav .nav-group,.sidebar nav button span:not(.ico){display:none}.sidebar nav button{justify-content:center;padding:12px}.main{padding:16px}}
+/* QA Preview cards */
+.qa-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.qa-card .q{font-weight:600;margin-bottom:6px;color:var(--accent)}
+.qa-card .a{color:var(--text);font-size:13px;line-height:1.5}
+.qa-card .qa-actions{margin-top:8px;display:flex;gap:6px}
+/* Scrape preview */
+.scrape-preview{background:var(--s2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;max-height:400px;overflow-y:auto;white-space:pre-wrap;font-size:13px;line-height:1.5;margin:12px 0}
+/* Model cards */
+.model-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.model-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative}
+.model-card.active-model{border-color:var(--green)}
+.model-card .model-name{font-weight:700;font-size:15px;margin-bottom:4px}
+.model-card .model-desc{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.4}
+.model-card .model-meta{font-size:12px;color:var(--muted);margin-bottom:12px}
+.model-card .badge{position:absolute;top:12px;right:12px;font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600}
+.badge-rec{background:var(--green);color:#000}
+.badge-active{background:var(--accent);color:#fff}
+.badge-dl{background:var(--s3);color:var(--text)}
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-box">
+    <h2>🔒 Neuro-Lite Admin</h2>
+    <p>Enter your admin credentials to continue.</p>
+    <div class="form-group"><label>Username</label><input type="text" id="loginUser" value="admin"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="loginPass" placeholder="Password"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doLogin()">Sign In</button>
+    <p id="loginErr" style="color:var(--red);margin-top:12px;font-size:12px"></p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div class="layout" id="mainApp" style="display:none">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="brand"><div class="icon">N</div><span>Admin Panel</span></div>
+    <nav>
+      <div class="nav-group">Monitor</div>
+      <button class="active" data-tab="dashboard"><span class="ico">📊</span><span>Dashboard</span></button>
+      <div class="nav-group">Knowledge</div>
+      <button data-tab="knowledge"><span class="ico">📚</span><span>Knowledge Base</span></button>
+      <button data-tab="distill"><span class="ico">🧠</span><span>AI Teacher</span></button>
+      <button data-tab="scraper"><span class="ico">🌐</span><span>Web Explorer</span></button>
+      <button data-tab="community"><span class="ico">🤝</span><span>Import / Export</span></button>
+      <div class="nav-group">System</div>
+      <button data-tab="models"><span class="ico">⚙️</span><span>Model Hub</span></button>
+      <button data-tab="testchat"><span class="ico">💬</span><span>Test Chat</span></button>
+      <button data-tab="settings"><span class="ico">🔧</span><span>Settings</span></button>
+    </nav>
+  </div>
+  <div class="main" id="mainContent">
+    <!-- Dashboard -->
+    <div class="tab-content active" id="tab-dashboard">
+      <h2>Dashboard</h2>
+      <div class="cards" id="statsCards"></div>
+      <h3 style="margin-bottom:12px">Downloaded Models</h3>
+      <table class="tbl" id="modelListTable"><thead><tr><th>Filename</th><th>Size</th><th>Status</th></tr></thead><tbody id="modelListBody"></tbody></table>
+    </div>
+
+    <!-- Knowledge Base -->
+    <div class="tab-content" id="tab-knowledge">
+      <h2>Knowledge Base</h2>
+      <div class="toolbar">
+        <input type="text" id="kbSearch" placeholder="Search knowledge..." class="form-group" style="margin:0">
+        <button class="btn btn-primary" onclick="searchKB()">Search</button>
+        <button class="btn btn-success" onclick="showAddKB()">+ Add Entry</button>
+        <button class="btn btn-outline" onclick="loadKB()">Refresh</button>
+      </div>
+      <div id="kbCount" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+      <table class="tbl"><thead><tr><th style="width:50px">ID</th><th style="width:120px">Topic</th><th>Question</th><th>Answer</th><th style="width:80px">Source</th><th style="width:100px">Actions</th></tr></thead><tbody id="kbBody"></tbody></table>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="kbPrev()">← Prev</button>
+        <span id="kbPage" style="font-size:12px;color:var(--muted);line-height:30px"></span>
+        <button class="btn btn-outline btn-sm" onclick="kbNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- AI Teacher -->
+    <div class="tab-content" id="tab-distill">
+      <h2>AI Teacher — Knowledge Distillation</h2>
+      <p style="color:var(--muted);margin-bottom:20px">Use a premium AI API (OpenAI, etc.) to generate structured Q&A knowledge on any topic.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="form-group"><label>Topic / Domain</label><input type="text" id="distillTopic" placeholder="e.g., Linux troubleshooting"></div>
+        <div style="display:flex;gap:16px">
+          <div class="form-group" style="flex:1"><label>Number of Q&A pairs</label><input type="number" id="distillCount" value="5" min="1" max="50"></div>
+          <div class="form-group" style="flex:1"><label>Language</label><input type="text" id="distillLang" value="english"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="distillBtn" onclick="doDistill()">🧠 Generate Knowledge</button>
+      <div id="distillStatus" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+      <div id="distillResults" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Web Scraper -->
+    <div class="tab-content" id="tab-scraper">
+      <h2>Web Explorer</h2>
+      <p style="color:var(--muted);margin-bottom:20px">Fetch content from any URL, review it, and add relevant information to the knowledge base.</p>
+      <div class="form-group"><label>URL</label><input type="url" id="scrapeUrl" placeholder="https://example.com/article"></div>
+      <div class="form-group"><label>CSS Selector (optional)</label><input type="text" id="scrapeSelector" placeholder="e.g., .article-content, main"></div>
+      <button class="btn btn-primary" id="scrapeBtn" onclick="doScrape()">🌐 Fetch Content</button>
+      <div id="scrapeResult" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Import / Export -->
+    <div class="tab-content" id="tab-community">
+      <h2>Community — Import / Export Knowledge</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div class="card">
+          <h3 style="margin-bottom:12px">📤 Export Knowledge Pack</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Download all knowledge as a JSON file to share with the community.</p>
+          <button class="btn btn-primary" onclick="exportKnowledge()">Download Knowledge Pack</button>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:12px">📥 Import Knowledge Pack</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Upload a JSON knowledge pack file.</p>
+          <input type="file" id="importFile" accept=".json" style="margin-bottom:10px;font-size:13px;color:var(--muted)">
+          <br><button class="btn btn-success" onclick="importKnowledge()">Import File</button>
+        </div>
+      </div>
+      <div style="margin-top:20px">
+        <button class="btn btn-outline" onclick="rebuildIndex()">🔄 Rebuild Search Index</button>
+        <span style="font-size:12px;color:var(--muted);margin-left:8px">Run after large imports for optimal search.</span>
+      </div>
+    </div>
+
+    <!-- Model Hub -->
+    <div class="tab-content" id="tab-models">
+      <h2>Model Hub</h2>
+      <p style="color:var(--muted);margin-bottom:20px">Download, manage, and switch between GGUF language models.</p>
+      <div class="model-grid" id="modelHub"></div>
+    </div>
+
+    <!-- Test Chat -->
+    <div class="tab-content" id="tab-testchat">
+      <h2>Test Chat</h2>
+      <p style="color:var(--muted);margin-bottom:16px">Test the AI locally without streaming. See emotion detection and RAG results.</p>
+      <div class="form-group"><label>Message</label><textarea id="testMsg" rows="3" placeholder="Type a test message..."></textarea></div>
+      <button class="btn btn-primary" id="testBtn" onclick="doTestChat()">Send Test</button>
+      <div id="testResult" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="tab-content" id="tab-settings">
+      <h2>Settings</h2>
+      <div id="settingsForm"></div>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="saveSettings()">Save All Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add KB Modal -->
+<div class="modal-bg" id="addKBModal">
+  <div class="modal">
+    <h3>Add Knowledge Entry</h3>
+    <div class="form-group"><label>Topic</label><input type="text" id="addKBTopic" placeholder="e.g., Networking"></div>
+    <div class="form-group"><label>Question</label><textarea id="addKBQuestion" rows="2" placeholder="What is DNS?"></textarea></div>
+    <div class="form-group"><label>Answer</label><textarea id="addKBAnswer" rows="4" placeholder="DNS stands for..."></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('addKBModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveKBEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scrape-to-KB Modal -->
+<div class="modal-bg" id="scrapeKBModal">
+  <div class="modal">
+    <h3>Add Scraped Content to Knowledge Base</h3>
+    <div class="form-group"><label>Topic</label><input type="text" id="scrapeKBTopic"></div>
+    <div class="form-group"><label>Question (what does this content answer?)</label><textarea id="scrapeKBQ" rows="2"></textarea></div>
+    <div class="form-group"><label>Answer (curated from scraped text)</label><textarea id="scrapeKBA" rows="6"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-outline" onclick="closeModal('scrapeKBModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveScrapeKB()">Add to Knowledge Base</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+(function(){
+  /* ─── State ─── */
+  let token = sessionStorage.getItem('nl_admin_token')||'';
+  let kbOffset = 0;
+  const kbLimit = 30;
+  let settingsCache = {};
+
+  /* ─── API Helper ─── */
+  async function api(endpoint, opts={}){
+    const headers = {'Content-Type':'application/json'};
+    if(token) headers['Authorization']='Bearer '+token;
+    try{
+      const r = await fetch('/admin'+endpoint,{...opts, headers:{...headers,...(opts.headers||{})}});
+      if(r.status===401){sessionStorage.removeItem('nl_admin_token');showLogin();return null;}
+      return r;
+    }catch(e){toast('Connection error: '+e.message,'error');return null;}
+  }
+  async function apiJson(endpoint,opts={}){const r=await api(endpoint,opts);if(!r)return null;try{return await r.json();}catch{return null;}}
+
+  /* ─── Toast ─── */
+  function toast(msg,type='info'){
+    const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
+    document.getElementById('toasts').appendChild(t);
+    setTimeout(()=>t.remove(),4500);
+  }
+
+  /* ─── Auth ─── */
+  function showLogin(){document.getElementById('loginScreen').style.display='flex';document.getElementById('mainApp').style.display='none';}
+  function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('mainApp').style.display='flex';loadDashboard();}
+
+  window.doLogin = async function(){
+    const u=document.getElementById('loginUser').value;
+    const p=document.getElementById('loginPass').value;
+    const r=await fetch('/admin/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    if(r.ok){const d=await r.json();token=d.token;sessionStorage.setItem('nl_admin_token',token);showApp();}
+    else{document.getElementById('loginErr').textContent='Invalid credentials.';}
+  };
+
+  if(token){showApp();}else{showLogin();}
+
+  /* ─── Navigation ─── */
+  document.querySelectorAll('.sidebar nav button[data-tab]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.sidebar nav button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+      const tab=document.getElementById('tab-'+btn.dataset.tab);
+      if(tab)tab.classList.add('active');
+      // Load data for tab
+      if(btn.dataset.tab==='dashboard')loadDashboard();
+      else if(btn.dataset.tab==='knowledge')loadKB();
+      else if(btn.dataset.tab==='models')loadModels();
+      else if(btn.dataset.tab==='settings')loadSettings();
+    });
+  });
+
+  /* ─── Dashboard ─── */
+  async function loadDashboard(){
+    const d=await apiJson('/stats');
+    if(!d)return;
+    const progColor=(v)=>v<60?'green':v<85?'orange':'red';
+    document.getElementById('statsCards').innerHTML=`
+      <div class="card"><div class="label">CPU Usage</div><div class="value">${d.cpu_percent}%</div><div class="prog"><div class="fill ${progColor(d.cpu_percent)}" style="width:${d.cpu_percent}%"></div></div></div>
+      <div class="card"><div class="label">RAM Usage</div><div class="value">${d.ram_used_mb}MB</div><div class="sub">of ${d.ram_total_mb}MB (${d.ram_percent}%)</div><div class="prog"><div class="fill ${progColor(d.ram_percent)}" style="width:${d.ram_percent}%"></div></div></div>
+      <div class="card"><div class="label">Swap</div><div class="value">${d.swap_used_mb}MB</div><div class="sub">of ${d.swap_total_mb}MB</div></div>
+      <div class="card"><div class="label">Disk</div><div class="value">${d.disk_used_gb}GB</div><div class="sub">of ${d.disk_total_gb}GB (${d.disk_percent}%)</div><div class="prog"><div class="fill ${progColor(d.disk_percent)}" style="width:${d.disk_percent}%"></div></div></div>
+      <div class="card"><div class="label">Model</div><div class="value" style="font-size:16px">${d.model_loaded?'✅ Loaded':'❌ Not Loaded'}</div><div class="sub">${d.model_name||d.model_error||'N/A'}</div></div>
+      <div class="card"><div class="label">Knowledge Entries</div><div class="value">${d.knowledge_count}</div></div>
+      <div class="card"><div class="label">Uptime</div><div class="value">${formatUptime(d.uptime_seconds)}</div></div>
+      <div class="card"><div class="label">Load Avg</div><div class="value">${d.load_avg_1m}</div><div class="sub">1m: ${d.load_avg_1m} / 5m: ${d.load_avg_5m}</div></div>
+    `;
+    const tbody=document.getElementById('modelListBody');
+    tbody.innerHTML='';
+    (d.downloaded_models||[]).forEach(m=>{
+      tbody.innerHTML+=`<tr><td>${m.filename}</td><td>${m.size_mb}MB</td><td>${m.active?'<span style="color:var(--green)">● Active</span>':'Idle'}</td></tr>`;
+    });
+    if(!d.downloaded_models||!d.downloaded_models.length)tbody.innerHTML='<tr><td colspan="3" style="color:var(--muted)">No models downloaded</td></tr>';
+  }
+  function formatUptime(s){const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);return `${h}h ${m}m`;}
+
+  /* ─── Knowledge Base ─── */
+  window.loadKB = async function(){
+    const search=document.getElementById('kbSearch').value.trim();
+    const d=await apiJson('/knowledge?limit='+kbLimit+'&offset='+kbOffset+'&search='+encodeURIComponent(search));
+    if(!d)return;
+    document.getElementById('kbCount').textContent=`Showing ${d.entries.length} of ${d.total} entries`;
+    const tbody=document.getElementById('kbBody');
+    tbody.innerHTML='';
+    d.entries.forEach(e=>{
+      const q=esc(e.question).substring(0,100);
+      const a=esc(e.answer).substring(0,120);
+      tbody.innerHTML+=`<tr><td>${e.id}</td><td>${esc(e.topic||'')}</td><td>${q}</td><td>${a}</td><td>${esc(e.source||'')}</td><td class="actions"><button class="btn btn-danger btn-sm" onclick="deleteKB(${e.id})">Del</button></td></tr>`;
+    });
+    if(!d.entries.length)tbody.innerHTML='<tr><td colspan="6" style="color:var(--muted)">No entries found.</td></tr>';
+    document.getElementById('kbPage').textContent=`Page ${Math.floor(kbOffset/kbLimit)+1}`;
+  };
+  window.searchKB = function(){kbOffset=0;loadKB();};
+  window.kbPrev = function(){kbOffset=Math.max(0,kbOffset-kbLimit);loadKB();};
+  window.kbNext = function(){kbOffset+=kbLimit;loadKB();};
+  window.deleteKB = async function(id){
+    if(!confirm('Delete entry #'+id+'?'))return;
+    const r=await api('/knowledge/'+id,{method:'DELETE'});
+    if(r&&r.ok){toast('Entry deleted.','success');loadKB();}else{toast('Delete failed.','error');}
+  };
+  window.showAddKB = function(){document.getElementById('addKBModal').classList.add('show');};
+  window.saveKBEntry = async function(){
+    const t=document.getElementById('addKBTopic').value;
+    const q=document.getElementById('addKBQuestion').value;
+    const a=document.getElementById('addKBAnswer').value;
+    if(!q||!a){toast('Question and Answer are required.','error');return;}
+    const r=await apiJson('/knowledge',{method:'POST',body:JSON.stringify({topic:t,question:q,answer:a,source:'manual'})});
+    if(r&&r.id){toast('Knowledge entry added (ID: '+r.id+')','success');closeModal('addKBModal');document.getElementById('addKBTopic').value='';document.getElementById('addKBQuestion').value='';document.getElementById('addKBAnswer').value='';loadKB();}
+    else{toast('Failed to add entry.','error');}
+  };
+
+  /* ─── AI Distill ─── */
+  window.doDistill = async function(){
+    const topic=document.getElementById('distillTopic').value.trim();
+    const count=parseInt(document.getElementById('distillCount').value)||5;
+    const lang=document.getElementById('distillLang').value.trim()||'english';
+    if(!topic){toast('Enter a topic.','error');return;}
+    document.getElementById('distillBtn').disabled=true;
+    document.getElementById('distillStatus').textContent='⏳ Generating knowledge from premium AI... this may take 30-60 seconds.';
+    document.getElementById('distillResults').innerHTML='';
+    const d=await apiJson('/distill',{method:'POST',body:JSON.stringify({topic,count,language:lang})});
+    document.getElementById('distillBtn').disabled=false;
+    if(!d){document.getElementById('distillStatus').textContent='❌ Failed. Check API key in Settings.';return;}
+    if(d.detail){document.getElementById('distillStatus').textContent='❌ '+d.detail;return;}
+    document.getElementById('distillStatus').textContent=`✅ Generated ${d.count} Q&A pairs using ${d.model_used}`;
+    let html='<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-success" onclick="saveAllDistilled()">💾 Save All to Knowledge Base</button></div>';
+    (d.pairs||[]).forEach((p,i)=>{
+      html+=`<div class="qa-card" id="qa-${i}"><div class="q">Q: ${esc(p.question)}</div><div class="a">A: ${esc(p.answer)}</div><div class="qa-actions"><button class="btn btn-success btn-sm" onclick="saveSingleDistilled(${i})">Save</button><button class="btn btn-danger btn-sm" onclick="document.getElementById('qa-${i}').remove()">Discard</button></div></div>`;
+    });
+    document.getElementById('distillResults').innerHTML=html;
+    window._distilledPairs=d.pairs;
+  };
+  window.saveAllDistilled = async function(){
+    if(!window._distilledPairs||!window._distilledPairs.length){toast('No pairs to save.','error');return;}
+    const entries=window._distilledPairs.map(p=>({topic:p.topic||'',question:p.question,answer:p.answer,source:'ai_distill'}));
+    const d=await apiJson('/distill/save',{method:'POST',body:JSON.stringify({entries})});
+    if(d&&d.saved!==undefined){toast(`Saved ${d.saved} entries to knowledge base!`,'success');document.getElementById('distillResults').innerHTML='';}
+    else{toast('Save failed.','error');}
+  };
+  window.saveSingleDistilled = async function(i){
+    const p=window._distilledPairs[i];
+    if(!p)return;
+    const d=await apiJson('/knowledge',{method:'POST',body:JSON.stringify({topic:p.topic||'',question:p.question,answer:p.answer,source:'ai_distill'})});
+    if(d&&d.id){toast('Saved entry #'+d.id,'success');const el=document.getElementById('qa-'+i);if(el)el.style.opacity='0.3';}
+    else{toast('Failed.','error');}
+  };
+
+  /* ─── Web Scraper ─── */
+  window.doScrape = async function(){
+    const url=document.getElementById('scrapeUrl').value.trim();
+    const selector=document.getElementById('scrapeSelector').value.trim();
+    if(!url){toast('Enter a URL.','error');return;}
+    document.getElementById('scrapeBtn').disabled=true;
+    document.getElementById('scrapeResult').innerHTML='<p style="color:var(--muted)">⏳ Fetching content...</p>';
+    const d=await apiJson('/scrape',{method:'POST',body:JSON.stringify({url,selector})});
+    document.getElementById('scrapeBtn').disabled=false;
+    if(!d){document.getElementById('scrapeResult').innerHTML='<p style="color:var(--red)">Failed to fetch.</p>';return;}
+    if(d.detail){document.getElementById('scrapeResult').innerHTML='<p style="color:var(--red)">'+esc(d.detail)+'</p>';return;}
+    const preview=esc(d.text).substring(0,5000);
+    document.getElementById('scrapeResult').innerHTML=`
+      <h3>${esc(d.title)}</h3>
+      <p style="font-size:12px;color:var(--muted)">${esc(d.url)} — ${d.length} chars</p>
+      <div class="scrape-preview">${preview}${d.length>5000?'\n\n[...truncated in preview]':''}</div>
+      <button class="btn btn-success" onclick="openScrapeKB('${esc(d.title)}')">➕ Add to Knowledge Base</button>
+    `;
+    window._scrapedText=d.text;
+    window._scrapedTitle=d.title;
+  };
+  window.openScrapeKB = function(title){
+    document.getElementById('scrapeKBTopic').value=title;
+    document.getElementById('scrapeKBA').value=(window._scrapedText||'').substring(0,2000);
+    document.getElementById('scrapeKBModal').classList.add('show');
+  };
+  window.saveScrapeKB = async function(){
+    const t=document.getElementById('scrapeKBTopic').value;
+    const q=document.getElementById('scrapeKBQ').value;
+    const a=document.getElementById('scrapeKBA').value;
+    if(!q||!a){toast('Fill in question and answer.','error');return;}
+    const d=await apiJson('/knowledge',{method:'POST',body:JSON.stringify({topic:t,question:q,answer:a,source:'web_scrape'})});
+    if(d&&d.id){toast('Added to knowledge base! (ID: '+d.id+')','success');closeModal('scrapeKBModal');}
+    else{toast('Failed.','error');}
+  };
+
+  /* ─── Import/Export ─── */
+  window.exportKnowledge = async function(){
+    const r=await api('/knowledge/export');
+    if(!r||!r.ok)return;
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='neurolite_knowledge.json';a.click();
+    URL.revokeObjectURL(url);
+    toast('Knowledge pack downloaded.','success');
+  };
+  window.importKnowledge = async function(){
+    const file=document.getElementById('importFile').files[0];
+    if(!file){toast('Select a file first.','error');return;}
+    const form=new FormData();form.append('file',file);
+    const r=await fetch('/admin/knowledge/import',{method:'POST',headers:{'Authorization':'Bearer '+token},body:form});
+    if(r.ok){const d=await r.json();toast(`Imported ${d.imported} entries (${d.valid} valid of ${d.total_in_file}).`,'success');}
+    else{const e=await r.json().catch(()=>({}));toast('Import failed: '+(e.detail||'Unknown error'),'error');}
+  };
+  window.rebuildIndex = async function(){
+    const r=await apiJson('/knowledge/rebuild-index',{method:'POST'});
+    if(r)toast('Search index rebuilt.','success');
+  };
+
+  /* ─── Model Hub ─── */
+  async function loadModels(){
+    const d=await apiJson('/models');
+    if(!d)return;
+    const hub=document.getElementById('modelHub');
+    hub.innerHTML='';
+    (d.models||[]).forEach(m=>{
+      let badge='';
+      if(m.active)badge='<span class="badge badge-active">ACTIVE</span>';
+      else if(m.recommended)badge='<span class="badge badge-rec">RECOMMENDED</span>';
+      else if(m.downloaded)badge='<span class="badge badge-dl">DOWNLOADED</span>';
+
+      let actions='';
+      if(m.active){actions='<span style="color:var(--green);font-size:12px">Currently active</span>';}
+      else if(m.downloaded){actions=`<button class="btn btn-primary btn-sm" onclick="switchModel('${esc(m.filename)}')">Activate</button>`;}
+      else{actions=`<button class="btn btn-success btn-sm" onclick="downloadModel('${esc(m.id)}')">Download (${m.size_gb}GB)</button>`;}
+
+      hub.innerHTML+=`<div class="model-card ${m.active?'active-model':''}">${badge}<div class="model-name">${esc(m.name)}</div><div class="model-desc">${esc(m.description)}</div><div class="model-meta">${m.size_gb}GB · ${esc(m.filename)}</div>${actions}</div>`;
+    });
+    // Check download progress
+    const progs=d.downloads_in_progress||{};
+    Object.entries(progs).forEach(([id,p])=>{pollDownload(id,p.filename);});
+  }
+  window.downloadModel = async function(modelId){
+    const d=await apiJson('/models/download',{method:'POST',body:JSON.stringify({model_id:modelId})});
+    if(!d)return;
+    if(d.status==='already_downloaded'){toast('Model already downloaded.','info');loadModels();return;}
+    toast('Download started: '+d.filename,'info');
+    pollDownload(d.download_id,d.filename);
+  };
+  async function pollDownload(downloadId,filename){
+    const poll=async()=>{
+      const d=await apiJson('/models/download-progress/'+downloadId);
+      if(!d)return;
+      if(d.status==='downloading'){
+        toast(`Downloading ${filename}: ${d.progress}%`,'info');
+        setTimeout(poll,5000);
+      }else if(d.status==='complete'){
+        toast(`${filename} download complete!`,'success');
+        loadModels();
+      }else if(d.status==='error'){
+        toast(`Download failed: ${d.error}`,'error');
+      }
+    };
+    poll();
+  }
+  window.switchModel = async function(filename){
+    if(!confirm('Switch to model: '+filename+'? This will reload the LLM engine.')){return;}
+    toast('Switching model... This may take a minute.','info');
+    const d=await apiJson('/models/switch',{method:'POST',body:JSON.stringify({filename})});
+    if(d&&d.status==='switched'){toast('Model switched to: '+d.model,'success');loadModels();loadDashboard();}
+    else{toast('Switch failed: '+(d?.detail||'Unknown error'),'error');}
+  };
+
+  /* ─── Test Chat ─── */
+  window.doTestChat = async function(){
+    const msg=document.getElementById('testMsg').value.trim();
+    if(!msg){toast('Enter a message.','error');return;}
+    document.getElementById('testBtn').disabled=true;
+    document.getElementById('testResult').innerHTML='<p style="color:var(--muted)">⏳ Generating response...</p>';
+    const d=await apiJson('/test-chat',{method:'POST',body:JSON.stringify({message:msg})});
+    document.getElementById('testBtn').disabled=false;
+    if(!d){document.getElementById('testResult').innerHTML='<p style="color:var(--red)">Failed.</p>';return;}
+    if(d.detail){document.getElementById('testResult').innerHTML='<p style="color:var(--red)">'+esc(d.detail)+'</p>';return;}
+    let ragHtml='';
+    if(d.rag_results&&d.rag_results.length){
+      ragHtml='<h4 style="margin-top:12px">RAG Results Used:</h4>';
+      d.rag_results.forEach(r=>{ragHtml+=`<div class="qa-card"><div class="q">Q: ${esc(r.question)}</div><div class="a">A: ${esc(r.answer)}</div></div>`;});
+    }
+    document.getElementById('testResult').innerHTML=`
+      <div class="card"><div class="label">Emotion: <strong style="color:var(--accent)">${d.emotion}</strong> (${d.confidence})</div></div>
+      <div class="card" style="margin-top:12px"><div class="label">Response</div><div style="margin-top:8px;line-height:1.7;white-space:pre-wrap">${esc(d.response)}</div></div>
+      ${ragHtml}
+    `;
+  };
+
+  /* ─── Settings ─── */
+  const SETTING_LABELS={
+    PREMIUM_API_KEY:'Premium AI API Key',PREMIUM_API_URL:'API URL',PREMIUM_MODEL:'API Model',
+    TEMPERATURE:'Temperature',TOP_P:'Top P',TOP_K:'Top K',REPEAT_PENALTY:'Repeat Penalty',
+    MAX_TOKENS:'Max Tokens',CONTEXT_LENGTH:'Context Length',N_THREADS:'CPU Threads',N_BATCH:'Batch Size',
+    SYSTEM_PROMPT:'System Prompt',ADMIN_PASSWORD:'Admin Password',LOG_LEVEL:'Log Level'
+  };
+  async function loadSettings(){
+    const d=await apiJson('/config');
+    if(!d)return;
+    settingsCache=d.config||{};
+    const form=document.getElementById('settingsForm');
+    form.innerHTML='';
+    const order=['PREMIUM_API_KEY','PREMIUM_API_URL','PREMIUM_MODEL','SYSTEM_PROMPT','TEMPERATURE','TOP_P','TOP_K','REPEAT_PENALTY','MAX_TOKENS','CONTEXT_LENGTH','N_THREADS','N_BATCH','ADMIN_PASSWORD','LOG_LEVEL'];
+    order.forEach(key=>{
+      if(!(key in settingsCache))return;
+      const val=settingsCache[key];
+      const label=SETTING_LABELS[key]||key;
+      const isTextarea=key==='SYSTEM_PROMPT';
+      const inputType=key==='PREMIUM_API_KEY'||key==='ADMIN_PASSWORD'?'password':'text';
+      form.innerHTML+=`<div class="form-group"><label>${label} (${key})</label>${isTextarea?`<textarea id="cfg-${key}" rows="3">${esc(val)}</textarea>`:`<input type="${inputType}" id="cfg-${key}" value="${esc(val)}">`}</div>`;
+    });
+  }
+  window.saveSettings = async function(){
+    const order=['PREMIUM_API_KEY','PREMIUM_API_URL','PREMIUM_MODEL','SYSTEM_PROMPT','TEMPERATURE','TOP_P','TOP_K','REPEAT_PENALTY','MAX_TOKENS','CONTEXT_LENGTH','N_THREADS','N_BATCH','ADMIN_PASSWORD','LOG_LEVEL'];
+    let saved=0;
+    for(const key of order){
+      const el=document.getElementById('cfg-'+key);
+      if(!el)continue;
+      const newVal=el.value;
+      if(newVal===settingsCache[key])continue;
+      const r=await apiJson('/config',{method:'POST',body:JSON.stringify({key,value:newVal})});
+      if(r&&r.status==='updated')saved++;
+    }
+    toast(saved>0?`Saved ${saved} setting(s).`:'No changes detected.','success');
+    loadSettings();
+  };
+
+  /* ─── Modal ─── */
+  window.closeModal = function(id){document.getElementById(id).classList.remove('show');};
+  document.querySelectorAll('.modal-bg').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');});});
+
+  /* ─── Util ─── */
+  function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+
+  /* ─── Auto-refresh dashboard ─── */
+  setInterval(()=>{if(document.getElementById('tab-dashboard').classList.contains('active'))loadDashboard();},15000);
+})();
+</script>
+</body>
+</html>
